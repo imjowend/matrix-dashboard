@@ -29,6 +29,8 @@ export function createMatrixProcessorUseCase(matrixCoreApi: IMatrixCoreApi) {
 
     } catch (err: any) {
       error.value = err.message || 'Ocurrió un error en el procesamiento de matrices.';
+      computedMatrices.value = null;
+      stats.value = null;
     } finally {
       loading.value = false;
     }
@@ -50,6 +52,8 @@ export function createMatrixProcessorUseCase(matrixCoreApi: IMatrixCoreApi) {
 
     } catch (err: any) {
       error.value = err.message || 'Ocurrió un error en el procesamiento de matrices.';
+      computedMatrices.value = null;
+      stats.value = null;
     } finally {
       loading.value = false;
     }
