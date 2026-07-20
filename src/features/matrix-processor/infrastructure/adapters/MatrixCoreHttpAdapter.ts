@@ -21,7 +21,8 @@ export class MatrixCoreHttpAdapter implements IMatrixCoreApi {
 
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
-      throw new Error(`Error del servidor (${res.status}): ${data.error || res.statusText}`);
+      console.error(`Matrix API error (${res.status}):`, data);
+      throw new Error(data.error || 'Ocurrió un error al procesar la matriz.');
     }
 
     return res.json();
