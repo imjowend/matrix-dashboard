@@ -1,11 +1,12 @@
 import type { IMatrixCoreApi, RotateMatrixResult, ProcessMatrixResult } from '../../domain/ports/IMatrixCoreApi';
 import { token } from '../../../../core/store/authStore';
+import { API_URL } from '../../../../core/config/apiUrl';
 
 export class MatrixCoreHttpAdapter implements IMatrixCoreApi {
   private async fetchWithAuth(endpoint: string, body: any) {
     if (!token.value) throw new Error('No autorizado (Token faltante)');
 
-    const res = await fetch(endpoint, {
+    const res = await fetch(`${API_URL}${endpoint}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
