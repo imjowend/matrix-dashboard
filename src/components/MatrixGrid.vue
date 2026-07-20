@@ -82,8 +82,9 @@ watch(() => props.modelValue, (value) => {
 
 function isCellValid(r: number, c: number): boolean {
   const raw = cells.value[r]?.[c] ?? '';
-  if (raw.trim() === '') return false;
-  return Number.isFinite(Number(raw));
+  const str = String(raw).trim();
+  if (str === '') return false;
+  return Number.isFinite(Number(str));
 }
 
 function isGridValid(): boolean {
