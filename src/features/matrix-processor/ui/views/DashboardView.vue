@@ -1,120 +1,176 @@
 <template>
-  <div>
-    <div class="session-bar">
-      <span>Sesión activa</span>
-      <button class="btn-logout" @click="logout">Cerrar sesión</button>
+  <div class="dashboard">
+    <div class="dashboard__intro">
+      <h1 class="dashboard__title">Procesador de Matrices</h1>
+      <p class="dashboard__subtitle">Factorización QR y análisis estadístico de matrices</p>
     </div>
 
-    <div class="input-section">
-      <label>Ingresa tu matriz en formato JSON (Array de arrays):</label>
-      <textarea v-model="matrixInputStr" rows="6"></textarea>
-      <div class="btn-group">
-        <button @click="handleQR" :disabled="loading">
+    <section class="dashboard__input">
+      <h2 class="dashboard__section-title">Matriz de entrada</h2>
+      <MatrixGrid
+        v-model="matrixInput"
+        editable
+        @update:valid="isInputValid = $event"
+      />
+      <div class="dashboard__actions">
+        <button
+          type="button"
+          class="btn btn--primary"
+          :disabled="loading || !isInputValid"
+          @click="handleQR"
+        >
           {{ loading && currentOperation === 'qr' ? 'Procesando...' : 'Factorización QR' }}
         </button>
-        <button @click="handleRotation" :disabled="loading" class="btn-secondary">
-          {{ loading && currentOperation === 'rotation' ? 'Rotando...' : 'Rotar 90° (horario)' }}
+        <button
+          type="button"
+          class="btn btn--secondary"
+          :disabled="loading || !isInputValid"
+          @click="handleRotation"
+        >
+          {{ loading && currentOperation === 'rotation' ? 'Rotando...' : 'Rotar 90°' }}
         </button>
       </div>
-    </div>
+    </section>
 
-    <div v-if="error" class="error">{{ error }}</div>
+    <ErrorBanner v-if="error" :message="error" />
 
-    <!-- Resultados -->
-    <div v-if="computedMatrices && stats" class="results-section">
-      <h2>Resultados</h2>
-      <div class="grid">
-        <div class="card" v-if="computedMatrices.matriz_original">
-          <h3>Matriz Original</h3>
-          <pre>{{ formatMatrix(computedMatrices.matriz_original) }}</pre>
+    <section v-if="computedMatrices && stats" class="dashboard__results">
+      <h2 class="dashboard__section-title">Resultados</h2>
+
+      <div class="dashboard__matrices">
+        <div class="matrix-card" v-if="computedMatrices.matriz_original">
+          <h3 class="matrix-card__title">Matriz Original</h3>
+          <MatrixGrid :model-value="computedMatrices.matriz_original" :editable="false" />
         </div>
-        <div class="card" v-if="computedMatrices.matriz_rotada">
-          <h3>Matriz Rotada</h3>
-          <pre>{{ formatMatrix(computedMatrices.matriz_rotada) }}</pre>
+        <div class="matrix-card" v-if="computedMatrices.matriz_rotada">
+          <h3 class="matrix-card__title">Matriz Rotada</h3>
+          <MatrixGrid :model-value="computedMatrices.matriz_rotada" :editable="false" />
         </div>
-        <div class="card" v-if="computedMatrices.matriz_Q">
-          <h3>Matriz Q (ortogonal)</h3>
-          <pre>{{ formatMatrix(computedMatrices.matriz_Q) }}</pre>
+        <div class="matrix-card" v-if="computedMatrices.matriz_Q">
+          <h3 class="matrix-card__title">Matriz Q (ortogonal)</h3>
+          <MatrixGrid :model-value="computedMatrices.matriz_Q" :editable="false" />
         </div>
-        <div class="card" v-if="computedMatrices.matriz_R">
-          <h3>Matriz R (triangular superior)</h3>
-          <pre>{{ formatMatrix(computedMatrices.matriz_R) }}</pre>
+        <div class="matrix-card" v-if="computedMatrices.matriz_R">
+          <h3 class="matrix-card__title">Matriz R (triangular superior)</h3>
+          <MatrixGrid :model-value="computedMatrices.matriz_R" :editable="false" />
         </div>
       </div>
-      
-      <div class="card stats-card">
-        <h3>Estadísticas</h3>
-        <ul>
-          <li><strong>Máximo:</strong> {{ stats.valor_maximo }}</li>
-          <li><strong>Mínimo:</strong> {{ stats.valor_minimo }}</li>
-          <li><strong>Suma Total:</strong> {{ stats.suma_total }}</li>
-          <li><strong>Promedio:</strong> {{ stats.promedio }}</li>
-          <li><strong>¿Alguna matriz diagonal?:</strong> {{ stats.alguna_matriz_diagonal ? 'Sí' : 'No' }}</li>
-        </ul>
+
+      <div class="dashboard__stats">
+        <StatCard label="Máximo" :value="formatNumber(stats.valor_maximo)" />
+        <StatCard label="Mínimo" :value="formatNumber(stats.valor_minimo)" />
+        <StatCard label="Suma total" :value="formatNumber(stats.suma_total)" />
+        <StatCard label="Promedio" :value="formatNumber(stats.promedio)" />
+        <div class="stat-card">
+          <span class="stat-card__label">¿Matriz diagonal?</span>
+          <span class="badge" :class="stats.alguna_matriz_diagonal ? 'badge--yes' : 'badge--no'">
+            {{ stats.alguna_matriz_diagonal ? 'Sí' : 'No' }}
+          </span>
+        </div>
       </div>
-    </div>
+    </section>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref } from 'vue';
 import { useMatrixProcessor } from '../../index';
-import { useAuth } from '../../../auth/index';
+import MatrixGrid from '../../../../components/MatrixGrid.vue';
+import ErrorBanner from '../../../../components/ErrorBanner.vue';
+import StatCard from '../../../../components/StatCard.vue';
+import { formatNumber } from '../../../../shared/formatNumber';
 
-const { logout } = useAuth();
-
-const { 
-  loading, 
-  error, 
-  computedMatrices, 
-  stats, 
-  setError, 
+const {
+  loading,
+  error,
+  computedMatrices,
+  stats,
   processRotation,
   processQR
 } = useMatrixProcessor();
 
-const matrixInputStr = ref('[\n  [1, 2, 3],\n  [4, 5, 6],\n  [7, 8, 9]\n]');
+const matrixInput = ref<number[][]>([
+  [0, 0, 0],
+  [0, 0, 0],
+  [0, 0, 0],
+]);
+const isInputValid = ref(true);
 const currentOperation = ref<string | null>(null);
-
-const formatMatrix = (matrix: number[][]) =>
-  matrix.map(row => row.map(v => Number(v).toFixed(4)).join('  ')).join('\n');
 
 const handleRotation = async () => {
   currentOperation.value = 'rotation';
-  try {
-    const parsedMatrix = JSON.parse(matrixInputStr.value);
-    await processRotation(parsedMatrix);
-  } catch (e: any) {
-    setError(`JSON inválido: Por favor verifica el formato. (${e.message})`);
-  }
+  await processRotation(matrixInput.value);
 };
 
 const handleQR = async () => {
   currentOperation.value = 'qr';
-  try {
-    const parsedMatrix = JSON.parse(matrixInputStr.value);
-    await processQR(parsedMatrix);
-  } catch (e: any) {
-    setError(`JSON inválido: Por favor verifica el formato. (${e.message})`);
-  }
+  await processQR(matrixInput.value);
 };
 </script>
 
 <style scoped>
-.session-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding: 8px 12px; background: #f0faf4; border-radius: 6px; font-size: 14px; color: #2d6a4f; }
-.btn-logout { padding: 6px 12px; background-color: #e74c3c; color: white; border: none; border-radius: 4px; cursor: pointer; }
-.input-section { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
-textarea { font-family: monospace; padding: 10px; border: 1px solid #ccc; border-radius: 4px; }
-.btn-group { display: flex; gap: 10px; }
-button { padding: 10px 16px; background-color: #42b883; color: white; border: none; border-radius: 4px; cursor: pointer; }
-button:disabled { background-color: #a0a0a0; }
-.btn-secondary { background-color: #3a86ff; }
-.error { color: red; margin: 10px 0; }
-.results-section { margin-top: 20px; }
-.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-.card { padding: 15px; border: 1px solid #eee; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-.stats-card { margin-top: 20px; }
-pre { background: #f4f4f4; padding: 10px; border-radius: 4px; overflow-x: auto; }
-ul { padding-left: 18px; }
-li { margin: 6px 0; }
+.dashboard { display: flex; flex-direction: column; gap: 32px; }
+.dashboard__intro { display: flex; flex-direction: column; gap: 4px; }
+.dashboard__title { font-size: 28px; }
+.dashboard__subtitle { font-size: 14px; color: var(--ins-gray-500); }
+.dashboard__section-title { font-size: 16px; margin-bottom: 12px; color: var(--ins-gray-900); }
+.dashboard__input { display: flex; flex-direction: column; gap: 16px; }
+.dashboard__actions { display: flex; gap: 12px; flex-wrap: wrap; }
+
+.btn {
+  padding: 10px 20px;
+  border-radius: var(--ins-radius-md);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.btn--primary {
+  background: var(--ins-blue-primary);
+  color: var(--ins-white);
+}
+.btn--primary:hover:not(:disabled) { background: var(--ins-blue-primary-hover); }
+.btn--secondary {
+  background: var(--ins-white);
+  color: var(--ins-blue-primary);
+  border-color: var(--ins-blue-primary);
+}
+.btn--secondary:hover:not(:disabled) { background: var(--accent-bg); }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn:focus-visible { outline: 2px solid var(--ins-blue-primary); outline-offset: 2px; }
+
+.dashboard__matrices {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 20px;
+  margin-bottom: 24px;
+}
+.matrix-card {
+  padding: 16px;
+  border: 1px solid var(--ins-gray-200);
+  border-radius: var(--ins-radius-md);
+  background: var(--ins-white);
+  box-shadow: var(--ins-shadow-sm);
+}
+.matrix-card__title { font-size: 14px; margin-bottom: 12px; color: var(--ins-gray-900); }
+
+.dashboard__stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 600;
+  width: fit-content;
+}
+.badge--yes { background: rgba(34, 84, 194, 0.12); color: var(--ins-blue-primary); }
+.badge--no { background: var(--ins-gray-200); color: var(--ins-gray-500); }
 </style>
