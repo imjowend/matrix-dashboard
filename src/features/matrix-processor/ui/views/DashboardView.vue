@@ -61,8 +61,8 @@
         <StatCard label="Mínimo" :value="formatNumber(stats.valor_minimo)" />
         <StatCard label="Suma total" :value="formatNumber(stats.suma_total)" />
         <StatCard label="Promedio" :value="formatNumber(stats.promedio)" />
-        <div class="stat-card">
-          <span class="stat-card__label">¿Matriz diagonal?</span>
+        <div class="dashboard__diagonal-card">
+          <span class="dashboard__diagonal-label">¿Matriz diagonal?</span>
           <span class="badge" :class="stats.alguna_matriz_diagonal ? 'badge--yes' : 'badge--no'">
             {{ stats.alguna_matriz_diagonal ? 'Sí' : 'No' }}
           </span>
@@ -161,6 +161,23 @@ const handleQR = async () => {
   gap: 12px;
 }
 
+.dashboard__diagonal-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px 16px;
+  background: var(--ins-gray-50);
+  border: 1px solid var(--ins-gray-200);
+  border-radius: var(--ins-radius-md);
+  min-width: 120px;
+}
+.dashboard__diagonal-label {
+  font-size: 12px;
+  color: var(--ins-gray-500);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
 .badge {
   display: inline-flex;
   align-items: center;
@@ -171,6 +188,6 @@ const handleQR = async () => {
   font-weight: 600;
   width: fit-content;
 }
-.badge--yes { background: rgba(34, 84, 194, 0.12); color: var(--ins-blue-primary); }
+.badge--yes { background: var(--accent-bg); color: var(--ins-blue-primary); }
 .badge--no { background: var(--ins-gray-200); color: var(--ins-gray-500); }
 </style>
